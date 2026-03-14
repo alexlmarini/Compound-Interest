@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-name" content="Compound">
+<meta name="theme-color" content="#0a0a0f">
+<title>Compound</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+–bg: #0a0a0f;
+–surface: #13131a;
+–surface2: #1c1c26;
+–border: rgba(255,255,255,0.07);
+–text: #f0ede8;
+–muted: rgba(240,237,232,0.45);
+–accent: #c8f564;
+–accent2: #6478f5;
+–mono: ‘DM Mono’, monospace;
+–serif: ‘Fraunces’, serif;
+–safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body { height: 100%; background: var(–bg); color: var(–text); font-family: var(–mono); overflow: hidden; }
+
+/* ── layout ── */
+.app { display: flex; flex-direction: column; height: 100dvh; }
+
+header {
+padding: 56px 24px 16px;
+flex-shrink: 0;
+}
+header h1 { font-family: var(–serif); font-weight: 300; font-size: 28px; letter-spacing: -0.5px; }
+header h1 em { font-style: italic; color: var(–accent); }
+
+.tabs {
+display: flex; gap: 0; flex-shrink: 0;
+border-bottom: 1px solid var(–border);
+padding: 0 24px;
+}
+.tab {
+font-family: var(–mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+color: var(–muted); background: none; border: none; cursor: pointer;
+padding: 10px 0; margin-right: 24px;
+border-bottom: 1.5px solid transparent; transition: all 0.2s;
+}
+.tab.active { color: var(–accent); border-bottom-color: var(–accent); }
+
+.panels { flex: 1; overflow: hidden; position: relative; }
+.panel { position: absolute; inset: 0; overflow-y: auto; padding: 20px 24px; padding-bottom: calc(20px + var(–safe-bottom)); display: none; }
+.panel.active { display: block; }
+
+/* ── calculator ── */
+.result-hero {
+background: var(–surface);
+border-radius: 16px;
+padding: 20px;
+margin-bottom: 20px;
+display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+}
+.stat { }
+.stat-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(–muted); margin-bottom: 4px; }
+.stat-value { font-family: var(–serif); font-size: 22px; font-weight: 300; }
+.stat-value.green { color: var(–accent); }
+
+.presets { display: flex; gap: 8px; margin-bottom: 20px; }
+.preset-btn {
+flex: 1; background: var(–surface); border: 1px solid var(–border);
+color: var(–muted); font-family: var(–mono); font-size: 10px;
+letter-spacing: 0.06em; text-transform: uppercase; padding: 10px 6px;
+border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.15s;
+line-height: 1.5;
+}
+.preset-btn:active { opacity: 0.7; }
+.preset-btn.active { border-color: var(–accent); color: var(–accent); background: rgba(200,245,100,0.06); }
+.preset-btn .preset-rate { font-size: 13px; font-weight: 500; display: block; color: var(–text); margin-top: 2px; }
+.preset-btn.active .preset-rate { color: var(–accent); }
+
+.sliders { display: flex; flex-direction: column; gap: 18px; }
+.slider-row label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(–muted); display: flex; justify-content: space-between; margin-bottom: 8px; }
+.slider-row label span { color: var(–text); font-weight: 500; }
+
+input[type=range] {
+-webkit-appearance: none; width: 100%; height: 2px;
+background: var(–surface2); border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+-webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+background: var(–accent); cursor: pointer; box-shadow: 0 0 0 4px rgba(200,245,100,0.15);
+}
+select {
+width: 100%; background: var(–surface2); border: 1px solid var(–border);
+color: var(–text); font-family: var(–mono); font-size: 13px;
+padding: 10px 14px; border-radius: 10px; outline: none;
+}
+
+/* ── chart ── */
+.chart-wrap { background: var(–surface); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+.chart-legend { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(–muted); }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+/* ── scenarios ── */
+.scenario-list { display: flex; flex-direction: column; gap: 10px; }
+.scenario-card {
+background: var(–surface); border-radius: 14px; padding: 16px;
+border: 1px solid var(–border); position: relative;
+animation: fadeIn 0.25s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.scenario-name { font-family: var(–serif); font-size: 17px; font-weight: 300; margin-bottom: 8px; }
+.scenario-meta { font-size: 11px; color: var(–muted); line-height: 1.8; }
+.scenario-final { font-size: 22px; font-family: var(–serif); color: var(–accent); margin-top: 8px; }
+.delete-btn {
+position: absolute; top: 14px; right: 14px;
+background: none; border: none; color: var(–muted); font-size: 18px; cursor: pointer;
+width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+}
+.save-btn {
+width: 100%; background: var(–accent); color: #0a0a0f; border: none;
+font-family: var(–mono); font-size: 13px; font-weight: 500; letter-spacing: 0.06em;
+padding: 14px; border-radius: 12px; cursor: pointer; margin-top: 20px;
+text-transform: uppercase; letter-spacing: 0.1em;
+transition: opacity 0.15s;
+}
+.save-btn:active { opacity: 0.7; }
+
+.name-input {
+width: 100%; background: var(–surface2); border: 1px solid var(–border);
+color: var(–text); font-family: var(–mono); font-size: 13px;
+padding: 10px 14px; border-radius: 10px; outline: none; margin-top: 16px;
+}
+.idea-tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 1px solid var(–border); }
+.idea-tab {
+font-family: var(–mono); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase;
+color: var(–muted); background: none; border: none; cursor: pointer;
+padding: 8px 0; margin-right: 20px; border-bottom: 1.5px solid transparent; transition: all 0.2s;
+}
+.idea-tab.active { color: var(–accent); border-bottom-color: var(–accent); }
+.idea-section { display: none; }
+.idea-section.active { display: block; }
+.idea-intro { font-size: 12px; color: var(–muted); line-height: 1.8; margin-bottom: 16px; padding: 12px 14px; background: var(–surface); border-radius: 10px; border-left: 2px solid var(–accent); }
+.idea-card { background: var(–surface); border-radius: 14px; padding: 16px; margin-bottom: 10px; border: 1px solid var(–border); }
+.idea-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.idea-name { font-family: var(–serif); font-size: 16px; font-weight: 300; }
+.idea-ticker { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 6px; }
+.ticker-green { background: rgba(200,245,100,0.12); color: var(–accent); }
+.ticker-blue { background: rgba(100,120,245,0.12); color: #8a98f8; }
+.ticker-amber { background: rgba(245,180,60,0.12); color: #f5c43c; }
+.idea-desc { font-size: 12px; color: var(–muted); line-height: 1.7; }
+.idea-meta { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.idea-badge { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(–muted); background: var(–surface2); padding: 3px 8px; border-radius: 6px; }
+.disclaimer { font-size: 10px; color: var(–muted); line-height: 1.7; margin-top: 16px; padding: 12px; background: var(–surface); border-radius: 10px; opacity: 0.7; }
+.update-bar { display: flex; justify-content: space-between; align-items: center; background: var(–surface); border-radius: 12px; padding: 12px 14px; margin-top: 16px; margin-bottom: 0; border: 1px solid var(–border); }
+.update-btn { background: var(–accent); color: #0a0a0f; border: none; font-family: var(–mono); font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; padding: 8px 14px; border-radius: 8px; cursor: pointer; transition: opacity .15s; }
+.update-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ai-ideas-section { margin-top: 16px; }
+.ai-card { background: var(–surface2); border-radius: 14px; padding: 16px; margin-bottom: 10px; border: 1px solid rgba(200,245,100,0.15); animation: fadeIn .3s ease; }
+.ai-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.ai-card-name { font-family: var(–serif); font-size: 16px; font-weight: 300; color: var(–text); }
+.ai-card-ticker { font-size: 11px; font-weight: 500; letter-spacing: .08em; padding: 3px 8px; border-radius: 6px; background: rgba(200,245,100,0.12); color: var(–accent); }
+.ai-card-desc { font-size: 12px; color: var(–muted); line-height: 1.7; }
+.ai-card-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.ai-card-tag { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(–muted); background: var(–surface); padding: 3px 8px; border-radius: 6px; }
+.loading-card { background: var(–surface); border-radius: 14px; padding: 24px 16px; text-align: center; color: var(–muted); font-size: 12px; margin-bottom: 10px; border: 1px solid var(–border); }
+.pulse { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+/* benchmark */
+.bench-account-bar { background: var(–surface); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(–border); }
+.bench-account-left { }
+.bench-acct-label { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(–muted); margin-bottom: 4px; }
+.bench-acct-value { font-family: var(–serif); font-size: 28px; font-weight: 300; }
+.bench-acct-edit { background: var(–surface2); border: 1px solid var(–border); color: var(–text); font-family: var(–mono); font-size: 13px; padding: 7px 11px; border-radius: 8px; outline: none; width: 130px; text-align: right; }
+.bench-perf-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.bench-perf-pill { flex: 1; background: var(–surface); border-radius: 10px; padding: 10px 8px; text-align: center; border: 1px solid var(–border); }
+.bench-pill-label { font-size: 9px; letter-spacing: .07em; text-transform: uppercase; color: var(–muted); margin-bottom: 4px; }
+.bench-pill-val { font-size: 13px; font-weight: 500; }
+.bench-pill-val.pos { color: var(–accent); }
+.bench-pill-val.neg { color: #f08080; }
+.bench-pill-val.neu { color: var(–muted); }
+.bench-period-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.bench-pt { font-family: var(–mono); font-size: 11px; letter-spacing: .05em; background: var(–surface); border: 1px solid var(–border); color: var(–muted); padding: 5px 11px; border-radius: 20px; cursor: pointer; transition: all .15s; }
+.bench-pt.active { background: rgba(200,245,100,.1); border-color: rgba(200,245,100,.4); color: var(–accent); }
+.bench-chart-wrap { background: var(–surface); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.bench-legend { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+.bench-legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(–muted); }
+.bench-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.bench-entry-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.bench-entry-row { background: var(–surface); border-radius: 11px; padding: 12px 14px; border: 1px solid var(–border); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bench-entry-label { font-size: 11px; color: var(–muted); letter-spacing: .04em; white-space: nowrap; }
+.bench-entry-input { background: var(–surface2); border: 1px solid var(–border); color: var(–text); font-family: var(–mono); font-size: 13px; padding: 6px 10px; border-radius: 8px; outline: none; width: 120px; text-align: right; }
+.bench-fetch-btn { width: 100%; background: var(–accent); color: #0a0a0f; border: none; font-family: var(–mono); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; padding: 14px; border-radius: 12px; cursor: pointer; transition: opacity .15s; margin-bottom: 8px; }
+.bench-fetch-btn:disabled { opacity: .45; cursor: not-allowed; }
+.bench-stamp { font-size: 11px; color: var(–muted); text-align: center; margin-bottom: 12px; }
+.bench-vs-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.bench-vs-card { background: var(–surface); border-radius: 11px; padding: 12px 10px; text-align: center; border: 1px solid var(–border); }
+.bench-vs-name { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(–muted); margin-bottom: 4px; }
+.bench-vs-pct { font-size: 18px; font-family: var(–serif); font-weight: 300; }
+.bench-vs-pct.pos { color: var(–accent); }
+.bench-vs-pct.neg { color: #f08080; }
+.bench-beat { font-size: 12px; text-align: center; padding: 12px 14px; border-radius: 10px; margin-bottom: 14px; line-height: 1.7; }
+.bench-beat.winning { background: rgba(200,245,100,.07); border: 1px solid rgba(200,245,100,.2); color: var(–accent); }
+.bench-beat.losing  { background: rgba(240,100,100,.07); border: 1px solid rgba(240,100,100,.2); color: #f08080; }
+.bench-beat.neutral { background: var(–surface); border: 1px solid var(–border); color: var(–muted); }
+
+.signal-hero { border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid var(–border); position: relative; overflow: hidden; }
+.signal-hero.green-glow { border-color: rgba(200,245,100,0.3); background: rgba(200,245,100,0.05); }
+.signal-hero.blue-glow  { border-color: rgba(100,120,245,0.3); background: rgba(100,120,245,0.05); }
+.signal-hero.amber-glow { border-color: rgba(245,180,60,0.3);  background: rgba(245,180,60,0.05);  }
+.signal-hero.gray-glow  { border-color: var(–border); background: var(–surface); }
+.signal-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(–muted); margin-bottom: 6px; }
+.signal-verdict { font-family: var(–serif); font-size: 26px; font-weight: 300; line-height: 1.2; margin-bottom: 10px; }
+.signal-verdict.green { color: var(–accent); }
+.signal-verdict.blue  { color: #8a98f8; }
+.signal-verdict.amber { color: #f5c43c; }
+.signal-summary { font-size: 12px; color: var(–muted); line-height: 1.8; }
+.signal-confidence { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 11px; color: var(–muted); }
+.conf-bar { height: 4px; border-radius: 2px; background: var(–surface2); width: 80px; overflow: hidden; }
+.conf-fill { height: 100%; border-radius: 2px; }
+
+.macro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.macro-card { background: var(–surface); border-radius: 12px; padding: 14px; border: 1px solid var(–border); }
+.macro-title { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(–muted); margin-bottom: 4px; }
+.macro-value { font-size: 20px; font-family: var(–serif); font-weight: 300; margin-bottom: 2px; }
+.macro-value.up   { color: var(–accent); }
+.macro-value.down { color: #f5c43c; }
+.macro-value.warn { color: #f08080; }
+.macro-sub { font-size: 11px; color: var(–muted); line-height: 1.5; }
+.macro-signal { font-size: 10px; margin-top: 6px; padding: 2px 8px; border-radius: 6px; display: inline-block; }
+.sig-green { background: rgba(200,245,100,0.12); color: var(–accent); }
+.sig-amber { background: rgba(245,180,60,0.12); color: #f5c43c; }
+.sig-red   { background: rgba(240,100,100,0.12); color: #f08080; }
+.sig-blue  { background: rgba(100,120,245,0.12); color: #8a98f8; }
+
+.factors-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.factor-row { display: flex; gap: 10px; align-items: flex-start; background: var(–surface); border-radius: 10px; padding: 12px; border: 1px solid var(–border); }
+.factor-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.factor-text { font-size: 12px; color: var(–muted); line-height: 1.6; }
+.factor-text strong { color: var(–text); font-weight: 500; }
+
+.roth-actions { display: flex; gap: 8px; margin-bottom: 16px; }
+.roth-run-btn { flex: 1; background: var(–accent); color: #0a0a0f; border: none; font-family: var(–mono); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; padding: 14px; border-radius: 12px; cursor: pointer; transition: opacity .15s; }
+.roth-run-btn:disabled { opacity: .45; cursor: not-allowed; }
+.roth-stamp { font-size: 11px; color: var(–muted); text-align: center; margin-bottom: 12px; }
+.roth-empty { text-align: center; padding: 40px 20px; color: var(–muted); font-size: 13px; line-height: 2; background: var(–surface); border-radius: 16px; border: 1px dashed var(–border); }
+.roth-empty-icon { font-size: 32px; margin-bottom: 12px; }
+</style>
+
+</head>
+<body>
+
+<!-- API KEY OVERLAY -->
+
+<div id="apikey-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;padding:40px 24px;display:flex;flex-direction:column;justify-content:center">
+  <div style="max-width:380px;margin:0 auto;width:100%">
+    <div style="font-family:var(--serif);font-size:28px;font-weight:300;margin-bottom:8px">API <em style="color:var(--accent);font-style:italic">key</em></div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:24px">The Roth IRA, Benchmark, and Ideas refresh features use Claude AI with live web search. You need a free Anthropic API key — it's stored only on your device.</p>
+    <div style="font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Your API key</div>
+    <input id="apikey-input" type="password" placeholder="sk-ant-..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:12px 14px;border-radius:10px;outline:none;margin-bottom:12px" />
+    <button onclick="saveApiKey()" style="width:100%;background:var(--accent);color:#0a0a0f;border:none;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;padding:14px;border-radius:12px;cursor:pointer;margin-bottom:16px">Save &amp; continue</button>
+    <p style="font-size:11px;color:var(--muted);line-height:1.7">Get a key at <span onclick="openLink('https://console.anthropic.com/settings/keys')" style="color:var(--accent);cursor:pointer;text-decoration:underline">console.anthropic.com</span>. Your key never leaves your device — it's saved in localStorage and sent directly to Anthropic's API.</p>
+  </div>
+</div>
+
+<div class="app">
+  <header>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <h1>com<em>pound</em></h1>
+      <button onclick="showApiKeyOverlay()" id="key-status-btn" style="background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;margin-top:4px">API key</button>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('calc')">Calculator</button>
+    <button class="tab" onclick="switchTab('chart')">Chart</button>
+    <button class="tab" onclick="switchTab('scenarios')">Scenarios</button>
+    <button class="tab" onclick="switchTab('ideas')">Ideas</button>
+    <button class="tab" onclick="switchTab('roth')">Roth IRA</button>
+    <button class="tab" onclick="switchTab('bench')">Benchmark</button>
+  </div>
+
+  <div class="panels">
+
+```
+<!-- CALCULATOR -->
+<div class="panel active" id="panel-calc">
+  <div class="result-hero">
+    <div class="stat">
+      <div class="stat-label">Final</div>
+      <div class="stat-value green" id="s-final">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Earned</div>
+      <div class="stat-value" id="s-earned">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Return</div>
+      <div class="stat-value" id="s-mult">—</div>
+    </div>
+  </div>
+
+  <div class="presets">
+    <button class="preset-btn" id="preset-retirement" onclick="applyPreset('retirement')">
+      Retirement<span class="preset-rate">7% · 30yr</span>
+    </button>
+    <button class="preset-btn" id="preset-low" onclick="applyPreset('low')">
+      Low risk<span class="preset-rate">4% · 10yr</span>
+    </button>
+    <button class="preset-btn" id="preset-high" onclick="applyPreset('high')">
+      High risk<span class="preset-rate">12% · 20yr</span>
+    </button>
+  </div>
+
+  <div class="sliders">
+    <div class="slider-row">
+      <label>Principal <span id="l-principal">$10,000</span></label>
+      <input type="range" id="r-principal" min="1000" max="100000" step="500" value="10000" oninput="calc()">
+    </div>
+    <div class="slider-row">
+      <label>Rate <span id="l-rate">7.0%</span></label>
+      <input type="range" id="r-rate" min="0.5" max="25" step="0.5" value="7" oninput="calc()">
+    </div>
+    <div class="slider-row">
+      <label>Years <span id="l-years">20 yrs</span></label>
+      <input type="range" id="r-years" min="1" max="50" step="1" value="20" oninput="calc()">
+    </div>
+    <div class="slider-row">
+      <label>Compound frequency</label>
+      <select id="r-freq" onchange="calc()">
+        <option value="1">Annually</option>
+        <option value="4">Quarterly</option>
+        <option value="12" selected>Monthly</option>
+        <option value="365">Daily</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- CHART -->
+<div class="panel" id="panel-chart">
+  <div class="chart-wrap">
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#c8f564"></div>Compound</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#6478f5"></div>Simple</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2e2e40"></div>Principal</div>
+    </div>
+    <div style="position:relative;height:320px"><canvas id="mainChart"></canvas></div>
+  </div>
+  <div style="background:var(--surface);border-radius:14px;padding:16px;font-size:12px;color:var(--muted);line-height:1.8">
+    The gap between <span style="color:var(--accent)">compound</span> and <span style="color:#6478f5">simple</span> interest is your compounding bonus — money earned on money you've already earned.
+  </div>
+</div>
+
+<!-- SCENARIOS -->
+<div class="panel" id="panel-scenarios">
+  <div class="stat-label" style="margin-bottom:8px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Save current scenario</div>
+  <input class="name-input" id="scenario-name" placeholder="e.g. Retirement fund, Kids college..." />
+  <button class="save-btn" onclick="saveScenario()">Save scenario</button>
+  <div style="margin:24px 0 12px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Saved</div>
+  <div class="scenario-list" id="scenario-list">
+    <div class="empty-state" id="empty-state">No scenarios yet.<br>Save one from the calculator.</div>
+  </div>
+</div>
+
+<!-- IDEAS -->
+<div class="panel" id="panel-ideas">
+  <div class="idea-tabs">
+    <button class="idea-tab active" onclick="switchIdea('retirement')">Retirement</button>
+    <button class="idea-tab" onclick="switchIdea('low')">Low risk</button>
+    <button class="idea-tab" onclick="switchIdea('high')">High risk</button>
+  </div>
+
+  <!-- RETIREMENT -->
+  <div class="idea-section active" id="idea-retirement">
+    <div class="idea-intro">Balanced 60/40 portfolio targeting ~7% real annual return. Best held in a tax-advantaged account like a 401(k) or Roth IRA. Long time horizon (20–35 yrs) lets compounding do the heavy lifting.</div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Vanguard S&P 500 ETF</div>
+        <span class="idea-ticker ticker-green">VOO</span>
+      </div>
+      <div class="idea-desc">Tracks the 500 largest US companies. Morningstar Gold-rated, expense ratio just 0.03%. The core holding most advisors recommend for retirement — broad, cheap, and proven over decades.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Core holding</span><span class="idea-badge">0.03% fee</span><span class="idea-badge">Large-cap US</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Schwab US Dividend ETF</div>
+        <span class="idea-ticker ticker-green">SCHD</span>
+      </div>
+      <div class="idea-desc">Tracks companies with 10+ consecutive years of dividend growth. Yields ~3.7% with a 0.06% expense ratio. Dividend growers have historically outperformed non-payers 2-to-1 over 50 years.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">~3.7% yield</span><span class="idea-badge">0.06% fee</span><span class="idea-badge">Income + growth</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Vanguard Total World Stock ETF</div>
+        <span class="idea-ticker ticker-blue">VT</span>
+      </div>
+      <div class="idea-desc">Almost 10,000 stocks across 20+ countries in one fund. Morningstar Gold-rated. Protects against over-concentration in US stocks — international markets outperformed the US in 2025.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Global</span><span class="idea-badge">0.06% fee</span><span class="idea-badge">Diversification</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">TIPS (Inflation-Protected Bonds)</div>
+        <span class="idea-ticker ticker-amber">TIPS</span>
+      </div>
+      <div class="idea-desc">Treasury bonds whose principal adjusts with inflation. Financial advisors recommend these to preserve purchasing power over a long retirement. Best held in a tax-advantaged account due to complex tax treatment.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Inflation hedge</span><span class="idea-badge">US Gov backed</span><span class="idea-badge">Bond allocation</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Target-Date Fund (e.g. 2055)</div>
+        <span class="idea-ticker ticker-blue">TDF</span>
+      </div>
+      <div class="idea-desc">Set-and-forget: pick the fund closest to your retirement year and it automatically shifts from stocks to bonds as you age. Recommended by NerdWallet and Bankrate as the best low-maintenance retirement option.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Auto-rebalancing</span><span class="idea-badge">Hands-off</span><span class="idea-badge">401(k) staple</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOW RISK -->
+  <div class="idea-section" id="idea-low">
+    <div class="idea-intro">Capital preservation with steady 3–4% returns. Ideal for money you'll need within 10 years, or as the "safe" portion of a larger portfolio. Morningstar notes short-term bond ETF demand is surging in 2026 as investors seek shelter.</div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">US Treasury Bills & Notes</div>
+        <span class="idea-ticker ticker-amber">T-Bills</span>
+      </div>
+      <div class="idea-desc">Backed by the US government — the safest investment available. Current yields remain attractive in 2026. Easy to buy directly at TreasuryDirect.gov or via a brokerage. Advisors recommend for near-term goals.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Gov. backed</span><span class="idea-badge">~4% yield</span><span class="idea-badge">Highly liquid</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Certificates of Deposit</div>
+        <span class="idea-ticker ticker-amber">CDs</span>
+      </div>
+      <div class="idea-desc">Fixed-rate, FDIC-insured savings for a set term (3 months to 5 years). Rates are typically higher than regular savings accounts. Advisors note the main downside is early-withdrawal penalties if you need liquidity.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">FDIC insured</span><span class="idea-badge">Fixed rate</span><span class="idea-badge">Low risk</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Dimensional Core Fixed Income ETF</div>
+        <span class="idea-ticker ticker-blue">DFCF</span>
+      </div>
+      <div class="idea-desc">Morningstar Gold-rated bond ETF that systematically optimizes duration and credit risk. One of the best active bond ETFs heading into 2026 at just 0.17% expense ratio. Great anchor for the bond side of a portfolio.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">0.17% fee</span><span class="idea-badge">Morningstar Gold</span><span class="idea-badge">Active bond</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Municipal Bond ETF</div>
+        <span class="idea-ticker ticker-blue">MUB</span>
+      </div>
+      <div class="idea-desc">Bonds issued by states and cities — interest is typically tax-free at the federal level. Bankrate rates muni bonds as one of the safest areas of the bond market, especially useful for investors in higher tax brackets.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Tax-free income</span><span class="idea-badge">State issued</span><span class="idea-badge">Low volatility</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">High-Yield Savings Account</div>
+        <span class="idea-ticker ticker-amber">HYSA</span>
+      </div>
+      <div class="idea-desc">Online banks like Marcus, Ally, and SoFi offer 4–5% APY with full FDIC protection and no lock-in. U.S. News advisors recommend these as the first step for low-risk savers — zero risk to principal, full liquidity.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">FDIC insured</span><span class="idea-badge">Full liquidity</span><span class="idea-badge">No minimums</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HIGH RISK -->
+  <div class="idea-section" id="idea-high">
+    <div class="idea-intro">Aggressive all-equity targeting 10–12%+ returns. High volatility — expect significant down years. Best suited for a 15–20+ year horizon where you won't need the money and can ride out market swings.</div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Invesco QQQ Trust</div>
+        <span class="idea-ticker ticker-green">QQQ</span>
+      </div>
+      <div class="idea-desc">Tracks the Nasdaq 100 — dominated by Apple, Nvidia, Microsoft, and Meta. The go-to ETF for tech-driven growth. Motley Fool and Seeking Alpha consistently rank it as a core aggressive holding heading into 2026.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Tech-heavy</span><span class="idea-badge">0.20% fee</span><span class="idea-badge">High growth</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Vanguard Growth ETF</div>
+        <span class="idea-ticker ticker-green">VUG</span>
+      </div>
+      <div class="idea-desc">Large-cap US growth stocks at a rock-bottom 0.03% fee. Top holdings include Nvidia, Apple, and Microsoft. Motley Fool recommends this as the best low-cost way to own growth stocks without picking individual names.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">0.03% fee</span><span class="idea-badge">Large-cap growth</span><span class="idea-badge">Passive</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">ARK Innovation ETF</div>
+        <span class="idea-ticker ticker-blue">ARKK</span>
+      </div>
+      <div class="idea-desc">Actively managed by Cathie Wood, targeting disruptive innovation: AI, robotics, genomics, fintech. Tesla alone was over 10% of the portfolio in early 2026. Very high risk/reward — not for the faint-hearted.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Actively managed</span><span class="idea-badge">0.75% fee</span><span class="idea-badge">Disruptive tech</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">iShares Core S&P Small-Cap ETF</div>
+        <span class="idea-ticker ticker-amber">IJR</span>
+      </div>
+      <div class="idea-desc">~650 small-cap US stocks with a 0.06% expense ratio. Small caps carry more risk but higher long-term growth potential. Motley Fool recommends this for diversifying beyond mega-cap tech in an aggressive portfolio.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Small-cap</span><span class="idea-badge">0.06% fee</span><span class="idea-badge">High growth potential</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">International Developed Markets ETF</div>
+        <span class="idea-ticker ticker-blue">VEA</span>
+      </div>
+      <div class="idea-desc">International stocks outside the US — Europe, Japan, Australia. International markets outperformed US markets in 2025 due to cheaper valuations and stimulus in Europe and Asia. Analysts expect the trend to continue into 2026.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">Non-US stocks</span><span class="idea-badge">0.03% fee</span><span class="idea-badge">Valuation play</span>
+      </div>
+    </div>
+
+    <div class="idea-card">
+      <div class="idea-card-header">
+        <div class="idea-name">Vanguard Utilities ETF</div>
+        <span class="idea-ticker ticker-amber">VPU</span>
+      </div>
+      <div class="idea-desc">Utilities — electricity, water, nuclear — are surging due to AI data center energy demand. Analysts cite stronger pricing power for producers heading into 2026. A surprising growth pick with a 2.5%+ dividend and 0.09% fee.</div>
+      <div class="idea-meta">
+        <span class="idea-badge">AI tailwind</span><span class="idea-badge">0.09% fee</span><span class="idea-badge">2.5%+ yield</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="update-bar">
+    <div>
+      <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Last updated</div>
+      <div id="last-updated" style="font-size:12px;color:var(--text);margin-top:2px;">Built-in (early 2026)</div>
+    </div>
+    <button class="update-btn" id="update-btn" onclick="fetchFreshIdeas()">
+      <span id="update-btn-text">Refresh ideas</span>
+    </button>
+  </div>
+
+  <div id="ai-ideas-retirement" class="ai-ideas-section" style="display:none"></div>
+  <div id="ai-ideas-low" class="ai-ideas-section" style="display:none"></div>
+  <div id="ai-ideas-high" class="ai-ideas-section" style="display:none"></div>
+
+  <div class="disclaimer">Not financial advice. AI-generated content uses web search for current data. Always consult a licensed financial advisor before investing.</div>
+</div>
+
+<!-- ROTH IRA SIGNAL -->
+<div class="panel" id="panel-roth">
+  <div id="roth-content">
+    <div class="roth-empty">
+      <div class="roth-empty-icon">📡</div>
+      Tap the button below to pull live Fed &amp; market data<br>and get a Roth IRA strategy signal.
+    </div>
+  </div>
+  <div style="margin-top:16px">
+    <div id="roth-stamp" class="roth-stamp" style="display:none"></div>
+    <button class="roth-run-btn" id="roth-btn" onclick="fetchRothSignal()">
+      <span id="roth-btn-text">Analyze market now</span>
+    </button>
+    <div class="disclaimer" style="margin-top:12px">Not financial advice. Uses live web search for Fed rate, inflation, S&P 500, and analyst outlooks. Always consult a licensed financial advisor.</div>
+  </div>
+</div>
+
+<!-- BENCHMARK -->
+<div class="panel" id="panel-bench">
+
+  <!-- account value bar -->
+  <div class="bench-account-bar">
+    <div class="bench-account-left">
+      <div class="bench-acct-label">Portfolio value</div>
+      <div class="bench-acct-value" id="bench-acct-display">$—</div>
+    </div>
+    <input class="bench-acct-edit" id="bench-acct-input" type="number" placeholder="e.g. 25000" oninput="updateAcctDisplay()" />
+  </div>
+
+  <!-- period tabs -->
+  <div class="bench-period-tabs">
+    <button class="bench-pt active" onclick="setBenchPeriod('1D')">1D</button>
+    <button class="bench-pt" onclick="setBenchPeriod('1W')">1W</button>
+    <button class="bench-pt" onclick="setBenchPeriod('1M')">1M</button>
+    <button class="bench-pt" onclick="setBenchPeriod('3M')">3M</button>
+    <button class="bench-pt" onclick="setBenchPeriod('6M')">6M</button>
+    <button class="bench-pt" onclick="setBenchPeriod('YTD')">YTD</button>
+  </div>
+
+  <!-- chart -->
+  <div class="bench-chart-wrap">
+    <div class="bench-legend">
+      <div class="bench-legend-item"><div class="bench-legend-dot" style="background:#c8f564"></div>Your portfolio</div>
+      <div class="bench-legend-item"><div class="bench-legend-dot" style="background:#6478f5"></div>SPY</div>
+      <div class="bench-legend-item"><div class="bench-legend-dot" style="background:#f5c43c"></div>QQQ</div>
+    </div>
+    <div style="position:relative;height:220px"><canvas id="benchChart"></canvas></div>
+  </div>
+
+  <!-- vs cards for selected period -->
+  <div id="bench-vs-row" class="bench-vs-grid" style="display:none">
+    <div class="bench-vs-card">
+      <div class="bench-vs-name">Your portfolio</div>
+      <div class="bench-vs-pct" id="bvs-port">—</div>
+    </div>
+    <div class="bench-vs-card">
+      <div class="bench-vs-name">SPY</div>
+      <div class="bench-vs-pct" id="bvs-spy">—</div>
+    </div>
+    <div class="bench-vs-card">
+      <div class="bench-vs-name">QQQ</div>
+      <div class="bench-vs-pct" id="bvs-qqq">—</div>
+    </div>
+  </div>
+  <div id="bench-beat-bar" class="bench-beat neutral" style="display:none"></div>
+
+  <!-- entry grid -->
+  <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Your portfolio value at each period start</div>
+  <div class="bench-entry-grid">
+    <div class="bench-entry-row">
+      <span class="bench-entry-label">Yesterday (1D start)</span>
+      <input class="bench-entry-input" id="b-1D" type="number" placeholder="$" oninput="renderBenchChart()" />
+    </div>
+    <div class="bench-entry-row">
+      <span class="bench-entry-label">1 week ago</span>
+      <input class="bench-entry-input" id="b-1W" type="number" placeholder="$" oninput="renderBenchChart()" />
+    </div>
+    <div class="bench-entry-row">
+      <span class="bench-entry-label">1 month ago</span>
+      <input class="bench-entry-input" id="b-1M" type="number" placeholder="$" oninput="renderBenchChart()" />
+    </div>
+    <div class="bench-entry-row">
+      <span class="bench-entry-label">3 months ago</span>
+      <input class="bench-entry-input" id="b-3M" type="number" placeholder="$" oninput="renderBenchChart()" />
+    </div>
+    <div class="bench-entry-row">
+      <span class="bench-entry-label">6 months ago</span>
+      <input class="bench-entry-input" id="b-6M" type="number" placeholder="$" oninput="renderBenchChart()" />
+    </div>
+    <div class="bench-entry-row">
+      <span class="bench-entry-label">Jan 1 (YTD start)</span>
+      <input class="bench-entry-input" id="b-YTD" type="number" placeholder="$" oninput="renderBenchChart()" />
+    </div>
+  </div>
+
+  <div id="bench-stamp" class="bench-stamp" style="display:none"></div>
+  <button class="bench-fetch-btn" id="bench-fetch-btn" onclick="fetchBenchmarkData()">
+    <span id="bench-fetch-text">Fetch SPY &amp; QQQ data</span>
+  </button>
+  <div class="disclaimer">SPY &amp; QQQ data fetched via live web search. Your portfolio values are stored locally on your device only. Not financial advice.</div>
+</div>
+```
+
+  </div>
+</div>
+
+<script>
+const PRESETS = {
+  retirement: { P: 10000, r: 7,  n: 12, Y: 30, label: 'Balanced 60/40 portfolio · avg 7% real return (S&P 500 minus inflation)' },
+  low:        { P: 10000, r: 4,  n: 12, Y: 10, label: 'Bonds & CDs · Treasury/bond funds avg 3–4% annually' },
+  high:       { P: 10000, r: 12, n: 12, Y: 20, label: 'Aggressive all-equity · upper-end stock market avg ~12%' },
+};
+
+function applyPreset(key) {
+  const p = PRESETS[key];
+  document.getElementById('r-principal').value = p.P;
+  document.getElementById('r-rate').value = p.r;
+  document.getElementById('r-years').value = p.Y;
+  document.getElementById('r-freq').value = p.n;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('preset-' + key).classList.add('active');
+  calc();
+}
+
+let chartInstance = null;
+
+function fmt(v) { return '$' + Math.round(v).toLocaleString(); }
+function fmtK(v) { return v >= 1000 ? '$' + (v/1000).toFixed(0)+'k' : '$'+Math.round(v); }
+
+function getVals() {
+  return {
+    P: +document.getElementById('r-principal').value,
+    r: +document.getElementById('r-rate').value / 100,
+    n: +document.getElementById('r-freq').value,
+    Y: +document.getElementById('r-years').value,
+  };
+}
+
+function calcFinal({ P, r, n, Y }) {
+  return P * Math.pow(1 + r / n, n * Y);
+}
+
+function calc() {
+  document.querySelectorAll('.preset-btn').forEach(b => {
+    const key = b.id.replace('preset-','');
+    const p = PRESETS[key];
+    const { P, r, n, Y } = getVals();
+    if (+p.P !== P || +p.r !== r*100 || +p.n !== n || +p.Y !== Y) b.classList.remove('active');
+  });
+  const { P, r, n, Y } = getVals();
+  document.getElementById('l-principal').textContent = fmt(P);
+  document.getElementById('l-rate').textContent = (r*100).toFixed(1) + '%';
+  document.getElementById('l-years').textContent = Y + ' yrs';
+  const final = calcFinal({ P, r, n, Y });
+  document.getElementById('s-final').textContent = fmt(final);
+  document.getElementById('s-earned').textContent = fmt(final - P);
+  document.getElementById('s-mult').textContent = (final / P).toFixed(2) + '×';
+  if (document.getElementById('panel-chart').classList.contains('active')) updateChart();
+}
+
+function buildChartData() {
+  const { P, r, n, Y } = getVals();
+  const labels = [], compound = [], simple = [], principal = [];
+  const step = Y <= 20 ? 1 : Y <= 40 ? 2 : 5;
+  for (let y = 0; y <= Y; y += step) {
+    labels.push(y === 0 ? 'Now' : 'Y'+y);
+    compound.push(+( P * Math.pow(1 + r/n, n*y) ).toFixed(2));
+    simple.push(+(P * (1 + r * y)).toFixed(2));
+    principal.push(P);
+  }
+  return { labels, compound, simple, principal };
+}
+
+function updateChart() {
+  const { labels, compound, simple, principal } = buildChartData();
+  if (!chartInstance) {
+    chartInstance = new Chart(document.getElementById('mainChart'), {
+      data: {
+        labels,
+        datasets: [
+          { type: 'bar', label: 'Principal', data: principal, backgroundColor: '#2e2e40', stack: 'c', borderRadius: 3 },
+          { type: 'bar', label: 'Interest', data: compound.map((v,i)=>+(v-principal[i]).toFixed(2)), backgroundColor: '#c8f564', stack: 'c', borderRadius: 3 },
+          { type: 'line', label: 'Simple', data: simple, borderColor: '#6478f5', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y) }
+        }},
+        scales: {
+          x: { stacked: true, ticks: { color: 'rgba(240,237,232,0.4)', font: { family: "'DM Mono'", size: 10 } }, grid: { display: false }, border: { display: false } },
+          y: { stacked: true, ticks: { callback: v => fmtK(v), color: 'rgba(240,237,232,0.4)', font: { family: "'DM Mono'", size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, border: { display: false } }
+        }
+      }
+    });
+  } else {
+    chartInstance.data.labels = labels;
+    chartInstance.data.datasets[0].data = principal;
+    chartInstance.data.datasets[1].data = compound.map((v,i)=>+(v-principal[i]).toFixed(2));
+    chartInstance.data.datasets[2].data = simple;
+    chartInstance.update('none');
+  }
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['calc','chart','scenarios','ideas','roth','bench'][i] === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if (name === 'chart') updateChart();
+}
+
+function switchIdea(name) {
+  document.querySelectorAll('.idea-tab').forEach((t,i) => t.classList.toggle('active', ['retirement','low','high'][i] === name));
+  document.querySelectorAll('.idea-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('idea-'+name).classList.add('active');
+  ['retirement','low','high'].forEach(k => {
+    const el = document.getElementById('ai-ideas-' + k);
+    if (el && el.innerHTML) el.style.display = k === name ? 'block' : 'none';
+  });
+}
+
+function saveScenario() {
+  const { P, r, n, Y } = getVals();
+  const name = document.getElementById('scenario-name').value.trim() || 'Scenario ' + (Date.now()+'').slice(-4);
+  const scenarios = JSON.parse(localStorage.getItem('scenarios') || '[]');
+  scenarios.unshift({ name, P, r, n, Y, ts: Date.now() });
+  localStorage.setItem('scenarios', JSON.stringify(scenarios));
+  document.getElementById('scenario-name').value = '';
+  renderScenarios();
+}
+
+function deleteScenario(ts) {
+  let scenarios = JSON.parse(localStorage.getItem('scenarios') || '[]');
+  scenarios = scenarios.filter(s => s.ts !== ts);
+  localStorage.setItem('scenarios', JSON.stringify(scenarios));
+  renderScenarios();
+}
+
+function renderScenarios() {
+  const scenarios = JSON.parse(localStorage.getItem('scenarios') || '[]');
+  const list = document.getElementById('scenario-list');
+  const empty = document.getElementById('empty-state');
+  if (scenarios.length === 0) { empty.style.display = 'block'; list.innerHTML = ''; list.appendChild(empty); return; }
+  empty.style.display = 'none';
+  const freqNames = {'1':'annually','4':'quarterly','12':'monthly','365':'daily'};
+  list.innerHTML = scenarios.map(s => {
+    const final = calcFinal(s);
+    return `<div class="scenario-card">
+      <button class="delete-btn" onclick="deleteScenario(${s.ts})">×</button>
+      <div class="scenario-name">${s.name}</div>
+      <div class="scenario-meta">
+        ${fmt(s.P)} · ${(s.r*100).toFixed(1)}% · ${s.Y} yrs · compounded ${freqNames[s.n]||'monthly'}
+      </div>
+      <div class="scenario-final">${fmt(final)}</div>
+    </div>`;
+  }).join('');
+}
+
+calc();
+renderScenarios();
+
+const TODAY = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+async function fetchFreshIdeas() {
+  const btn = document.getElementById('update-btn');
+  const btnText = document.getElementById('update-btn-text');
+  btn.disabled = true;
+  btnText.textContent = 'Updating...';
+
+  const categories = [
+    { key: 'retirement', label: 'retirement (60/40 balanced, long-term, 7% target, 401k/Roth IRA)' },
+    { key: 'low', label: 'low-risk (bonds, CDs, savings, capital preservation, 3-4% target)' },
+    { key: 'high', label: 'high-risk aggressive growth (all-equity, ETFs, 10-12%+ target)' },
+  ];
+
+  ['retirement','low','high'].forEach(k => {
+    const el = document.getElementById('ai-ideas-' + k);
+    el.style.display = 'none';
+    el.innerHTML = '';
+  });
+
+  let anySuccess = false;
+
+  for (const cat of categories) {
+    const el = document.getElementById('ai-ideas-' + cat.key);
+    el.style.display = 'block';
+    el.innerHTML = `<div class="loading-card"><div class="pulse">Searching for ${cat.key} ideas...</div></div>`;
+
+    const prompt = `Today is ${TODAY}. Search the web for the top 5 best investment ideas for ${cat.label} investors right now in ${TODAY}. Use sources like Morningstar, Motley Fool, Bankrate, Forbes, and U.S. News.
+
+Return ONLY a valid JSON array with no markdown, no backticks, no explanation — just raw JSON. Each object must have these exact fields:
+- "name": investment name (string)
+- "ticker": ticker symbol or short label like "HYSA" or "T-Bills" (string)
+- "desc": 2-sentence plain English description of why professionals recommend this right now (string)
+- "tags": array of 3 short badge strings like ["0.03% fee", "Large-cap", "Core holding"]
+- "color": one of "green", "blue", "amber"
+
+Return exactly 5 objects. No preamble. Start with [`;
+
+    try {
+      const apiKey = getApiKey();
+      if (!apiKey) { showApiKeyOverlay(); return; }
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+      const jsonStart = text.indexOf('[');
+      const jsonEnd = text.lastIndexOf(']') + 1;
+      const ideas = JSON.parse(text.slice(jsonStart, jsonEnd));
+
+      el.innerHTML = ideas.map(idea => {
+        const colorClass = idea.color === 'green' ? 'ticker-green' : idea.color === 'amber' ? 'ticker-amber' : 'ticker-blue';
+        const tags = (idea.tags || []).map(t => `<span class="ai-card-tag">${t}</span>`).join('');
+        return `<div class="ai-card">
+          <div class="ai-card-top">
+            <div class="ai-card-name">${idea.name}</div>
+            <span class="ai-card-ticker ${colorClass}">${idea.ticker}</span>
+          </div>
+          <div class="ai-card-desc">${idea.desc}</div>
+          <div class="ai-card-tags">${tags}</div>
+        </div>`;
+      }).join('');
+      anySuccess = true;
+    } catch(e) {
+      el.innerHTML = `<div class="loading-card" style="color:rgba(240,100,100,.7)">Could not load ${cat.key} ideas. Try again.</div>`;
+    }
+  }
+
+  if (anySuccess) {
+    const now = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    document.getElementById('last-updated').textContent = now;
+    localStorage.setItem('ideas-updated', now);
+    const cached = {};
+    ['retirement','low','high'].forEach(k => {
+      cached[k] = document.getElementById('ai-ideas-' + k).innerHTML;
+    });
+    localStorage.setItem('ideas-cache', JSON.stringify(cached));
+  }
+
+  btn.disabled = false;
+  btnText.textContent = 'Refresh ideas';
+}
+
+function loadCachedIdeas() {
+  const cached = JSON.parse(localStorage.getItem('ideas-cache') || 'null');
+  const updatedDate = localStorage.getItem('ideas-updated');
+  if (!cached) return;
+  ['retirement','low','high'].forEach(k => {
+    if (cached[k]) {
+      document.getElementById('ai-ideas-' + k).innerHTML = cached[k];
+      document.getElementById('ai-ideas-' + k).style.display = 'block';
+    }
+  });
+  if (updatedDate) document.getElementById('last-updated').textContent = updatedDate;
+}
+
+async function fetchRothSignal() {
+  const btn = document.getElementById('roth-btn');
+  const btnText = document.getElementById('roth-btn-text');
+  btn.disabled = true;
+  btnText.textContent = 'Analyzing...';
+
+  document.getElementById('roth-content').innerHTML = `
+    <div class="loading-card" style="padding:32px">
+      <div class="pulse" style="font-size:13px;color:var(--muted)">Pulling Fed rate data...</div>
+    </div>`;
+
+  const today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  const prompt = `Today is ${today}. You are a financial analyst helping a regular person decide how to allocate their Roth IRA contribution this month.
+
+Search the web for the following current data points:
+1. Current Federal Funds Rate (Fed interest rate) and the Fed's latest stance (hiking, holding, cutting)
+2. Current US inflation rate (CPI year-over-year)
+3. S&P 500 current level and recent trend (up/down, % from 52-week high)
+4. Current 10-year Treasury yield
+5. Current unemployment rate
+6. Any major analyst outlooks or warnings for the near-term market (next 3-6 months)
+
+Based on all of this, give a clear Roth IRA strategy recommendation: should this person lean toward HIGH RISK (aggressive growth), RETIREMENT (balanced 60/40), or LOW RISK (bonds/cash) right now?
+
+Return ONLY a valid JSON object with no markdown, no backticks. Structure:
+{
+  "verdict": "High Risk" | "Balanced / Retirement" | "Low Risk",
+  "verdictColor": "green" | "blue" | "amber",
+  "confidence": 0-100,
+  "summary": "2-3 sentence plain English explanation of why, citing the specific data",
+  "macros": [
+    { "title": "Fed Rate", "value": "X.XX%", "trend": "up"|"down"|"neutral", "signal": "green"|"amber"|"red"|"blue", "signalLabel": "short label", "detail": "one line context" },
+    { "title": "Inflation (CPI)", "value": "X.X%", "trend": "up"|"down"|"neutral", "signal": "green"|"amber"|"red"|"blue", "signalLabel": "short label", "detail": "one line context" },
+    { "title": "S&P 500", "value": "X,XXX", "trend": "up"|"down"|"neutral", "signal": "green"|"amber"|"red"|"blue", "signalLabel": "short label", "detail": "one line context" },
+    { "title": "10-yr Treasury", "value": "X.XX%", "trend": "up"|"down"|"neutral", "signal": "green"|"amber"|"red"|"blue", "signalLabel": "short label", "detail": "one line context" },
+    { "title": "Unemployment", "value": "X.X%", "trend": "up"|"down"|"neutral", "signal": "green"|"amber"|"red"|"blue", "signalLabel": "short label", "detail": "one line context" },
+    { "title": "Market Sentiment", "value": "Bullish|Neutral|Bearish", "trend": "up"|"down"|"neutral", "signal": "green"|"amber"|"red"|"blue", "signalLabel": "short label", "detail": "one line context" }
+  ],
+  "factors": [
+    { "icon": "emoji", "text": "<strong>Bold heading.</strong> One sentence explanation." },
+    { "icon": "emoji", "text": "<strong>Bold heading.</strong> One sentence explanation." },
+    { "icon": "emoji", "text": "<strong>Bold heading.</strong> One sentence explanation." },
+    { "icon": "emoji", "text": "<strong>Bold heading.</strong> One sentence explanation." }
+  ],
+  "action": "One concrete sentence: what to do with their Roth IRA contribution this month."
+}
+
+Return ONLY the JSON. Start with {`;
+
+  try {
+    const apiKey = getApiKey();
+    if (!apiKey) { showApiKeyOverlay(); document.getElementById('roth-btn').disabled = false; document.getElementById('roth-btn-text').textContent = 'Analyze market now'; return; }
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const start = text.indexOf('{'), end = text.lastIndexOf('}') + 1;
+    const d = JSON.parse(text.slice(start, end));
+
+    const glowClass = d.verdictColor === 'green' ? 'green-glow' : d.verdictColor === 'amber' ? 'amber-glow' : 'blue-glow';
+    const trendArrow = t => t === 'up' ? '↑' : t === 'down' ? '↓' : '→';
+    const trendColor = t => t === 'up' ? 'up' : t === 'down' ? 'down' : '';
+    const confColor = d.confidence >= 70 ? '#c8f564' : d.confidence >= 45 ? '#f5c43c' : '#f08080';
+
+    const macroHTML = d.macros.map(m => `
+      <div class="macro-card">
+        <div class="macro-title">${m.title}</div>
+        <div class="macro-value ${trendColor(m.trend)}">${m.value} <span style="font-size:14px">${trendArrow(m.trend)}</span></div>
+        <div class="macro-sub">${m.detail}</div>
+        <div class="macro-signal sig-${m.signal}">${m.signalLabel}</div>
+      </div>`).join('');
+
+    const factorsHTML = d.factors.map(f => `
+      <div class="factor-row">
+        <div class="factor-icon">${f.icon}</div>
+        <div class="factor-text">${f.text}</div>
+      </div>`).join('');
+
+    document.getElementById('roth-content').innerHTML = `
+      <div class="signal-hero ${glowClass}">
+        <div class="signal-label">Roth IRA signal — ${today}</div>
+        <div class="signal-verdict ${d.verdictColor}">${d.verdict}</div>
+        <div class="signal-summary">${d.summary}</div>
+        <div class="signal-confidence">
+          Confidence
+          <div class="conf-bar"><div class="conf-fill" style="width:${d.confidence}%;background:${confColor}"></div></div>
+          ${d.confidence}%
+        </div>
+      </div>
+
+      <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Key indicators</div>
+      <div class="macro-grid">${macroHTML}</div>
+
+      <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Why this signal</div>
+      <div class="factors-list">${factorsHTML}</div>
+
+      <div style="background:var(--surface);border-radius:12px;padding:16px;border-left:2px solid var(--accent);margin-bottom:4px">
+        <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Suggested action</div>
+        <div style="font-size:13px;color:var(--text);line-height:1.7">${d.action}</div>
+      </div>`;
+
+    localStorage.setItem('roth-cache', JSON.stringify({ html: document.getElementById('roth-content').innerHTML, date: today }));
+    document.getElementById('roth-stamp').style.display = 'block';
+    document.getElementById('roth-stamp').textContent = 'Last analyzed: ' + today;
+  } catch(e) {
+    document.getElementById('roth-content').innerHTML = `<div class="loading-card" style="color:rgba(240,100,100,.7);padding:32px">Analysis failed. Check your connection and try again.</div>`;
+  }
+
+  btn.disabled = false;
+  btnText.textContent = 'Re-analyze market';
+}
+
+function loadCachedRoth() {
+  const cached = JSON.parse(localStorage.getItem('roth-cache') || 'null');
+  if (!cached) return;
+  document.getElementById('roth-content').innerHTML = cached.html;
+  document.getElementById('roth-stamp').style.display = 'block';
+  document.getElementById('roth-stamp').textContent = 'Last analyzed: ' + cached.date;
+  document.getElementById('roth-btn-text').textContent = 'Re-analyze market';
+}
+
+/* ── BENCHMARK ── */
+let benchPeriod = '1D';
+let benchMarketData = null;
+let benchChartInstance = null;
+
+const PERIODS = ['1D','1W','1M','3M','6M','YTD'];
+const PERIOD_LABELS = {
+  '1D': ['Open','Mid-day','Now'],
+  '1W': ['Mon','Tue','Wed','Thu','Fri','Today'],
+  '1M': ['4W ago','3W ago','2W ago','1W ago','Now'],
+  '3M': ['3M ago','2M ago','1M ago','2W ago','Now'],
+  '6M': ['6M ago','5M ago','4M ago','3M ago','2M ago','1M ago','Now'],
+  'YTD': ['Jan 1','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Now'],
+};
+
+function updateAcctDisplay() {
+  const v = +document.getElementById('bench-acct-input').value;
+  document.getElementById('bench-acct-display').textContent = v ? fmt(v) : '$—';
+  saveBenchInputs();
+  renderBenchChart();
+}
+
+function setBenchPeriod(p) {
+  benchPeriod = p;
+  document.querySelectorAll('.bench-pt').forEach((b,i) => b.classList.toggle('active', PERIODS[i] === p));
+  renderBenchChart();
+  updateBenchVsRow();
+}
+
+function pctChange(from, to) {
+  if (!from || !to) return null;
+  return ((to - from) / from * 100);
+}
+
+function fmtPct(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+}
+
+function pctClass(v) {
+  if (v === null || isNaN(v)) return 'neu';
+  return v > 0 ? 'pos' : v < 0 ? 'neg' : 'neu';
+}
+
+function getPortfolioPct(period) {
+  const current = +document.getElementById('bench-acct-input').value;
+  const start = +document.getElementById('b-' + period).value;
+  return pctChange(start, current);
+}
+
+function updateBenchVsRow() {
+  if (!benchMarketData) return;
+  const portPct = getPortfolioPct(benchPeriod);
+  const spyPct  = benchMarketData[benchPeriod]?.spy;
+  const qqqPct  = benchMarketData[benchPeriod]?.qqq;
+
+  document.getElementById('bench-vs-row').style.display = 'grid';
+  const bvsPort = document.getElementById('bvs-port');
+  const bvsSpy  = document.getElementById('bvs-spy');
+  const bvsQqq  = document.getElementById('bvs-qqq');
+
+  bvsPort.textContent = fmtPct(portPct);
+  bvsPort.className = 'bench-vs-pct ' + pctClass(portPct);
+  bvsSpy.textContent  = fmtPct(spyPct);
+  bvsSpy.className  = 'bench-vs-pct ' + pctClass(spyPct);
+  bvsQqq.textContent  = fmtPct(qqqPct);
+  bvsQqq.className  = 'bench-vs-pct ' + pctClass(qqqPct);
+
+  const bar = document.getElementById('bench-beat-bar');
+  bar.style.display = 'block';
+  if (portPct === null) {
+    bar.className = 'bench-beat neutral';
+    bar.textContent = 'Enter your portfolio values above to see comparison.';
+  } else {
+    const beatSpy = portPct > (spyPct || 0);
+    const beatQqq = portPct > (qqqPct || 0);
+    if (beatSpy && beatQqq) {
+      bar.className = 'bench-beat winning';
+      bar.innerHTML = `You're beating both SPY (${fmtPct(spyPct)}) and QQQ (${fmtPct(qqqPct)}) over ${benchPeriod} 🎉`;
+    } else if (!beatSpy && !beatQqq) {
+      bar.className = 'bench-beat losing';
+      bar.innerHTML = `SPY (${fmtPct(spyPct)}) and QQQ (${fmtPct(qqqPct)}) are outperforming you over ${benchPeriod}.`;
+    } else {
+      bar.className = 'bench-beat neutral';
+      const beaten = beatSpy ? 'SPY' : 'QQQ';
+      const lagging = beatSpy ? `QQQ (${fmtPct(qqqPct)})` : `SPY (${fmtPct(spyPct)})`;
+      bar.innerHTML = `Beating ${beaten} but trailing ${lagging} over ${benchPeriod}.`;
+    }
+  }
+}
+
+function buildBenchChartData(period) {
+  const labels = PERIOD_LABELS[period];
+  const n = labels.length;
+  const current = +document.getElementById('bench-acct-input').value || null;
+  const startVal = +document.getElementById('b-' + period).value || null;
+
+  const portData = Array(n).fill(null);
+  const spyData  = Array(n).fill(null);
+  const qqqData  = Array(n).fill(null);
+
+  if (startVal && current) {
+    portData[0] = 0;
+    portData[n-1] = pctChange(startVal, current);
+    for (let i = 1; i < n-1; i++) portData[i] = null;
+  }
+
+  if (benchMarketData && benchMarketData[period]) {
+    const md = benchMarketData[period];
+    if (md.spyPoints) {
+      md.spyPoints.forEach((v, i) => { if (i < n) spyData[i] = v; });
+    } else if (md.spy !== undefined) {
+      spyData[0] = 0; spyData[n-1] = md.spy;
+    }
+    if (md.qqqPoints) {
+      md.qqqPoints.forEach((v, i) => { if (i < n) qqqData[i] = v; });
+    } else if (md.qqq !== undefined) {
+      qqqData[0] = 0; qqqData[n-1] = md.qqq;
+    }
+  }
+
+  return { labels, portData, spyData, qqqData };
+}
+
+function renderBenchChart() {
+  const { labels, portData, spyData, qqqData } = buildBenchChartData(benchPeriod);
+
+  if (!benchChartInstance) {
+    benchChartInstance = new Chart(document.getElementById('benchChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Portfolio', data: portData, borderColor: '#c8f564', borderWidth: 2, pointRadius: 3, pointBackgroundColor: '#c8f564', tension: 0.3, spanGaps: true },
+          { label: 'SPY',       data: spyData,  borderColor: '#6478f5', borderWidth: 1.5, pointRadius: 2, pointBackgroundColor: '#6478f5', tension: 0.3, spanGaps: true },
+          { label: 'QQQ',       data: qqqData,  borderColor: '#f5c43c', borderWidth: 1.5, pointRadius: 2, pointBackgroundColor: '#f5c43c', tension: 0.3, spanGaps: true },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ' ' + ctx.dataset.label + ': ' + fmtPct(ctx.parsed.y) } }
+        },
+        scales: {
+          x: { ticks: { color: 'rgba(240,237,232,0.4)', font: { family: "'DM Mono'", size: 10 }, maxRotation: 0 }, grid: { display: false }, border: { display: false } },
+          y: { ticks: { callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%', color: 'rgba(240,237,232,0.4)', font: { family: "'DM Mono'", size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false } }
+        }
+      }
+    });
+  } else {
+    benchChartInstance.data.labels = labels;
+    benchChartInstance.data.datasets[0].data = portData;
+    benchChartInstance.data.datasets[1].data = spyData;
+    benchChartInstance.data.datasets[2].data = qqqData;
+    benchChartInstance.update('none');
+  }
+  updateBenchVsRow();
+}
+
+async function fetchBenchmarkData() {
+  const btn = document.getElementById('bench-fetch-btn');
+  const txt = document.getElementById('bench-fetch-text');
+  btn.disabled = true;
+  txt.textContent = 'Fetching...';
+
+  const today = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+
+  const prompt = `Today is ${today}. Search the web for current SPY (S&P 500 ETF) and QQQ (Nasdaq-100 ETF) performance data.
+
+Find the percentage change for each of the following periods for both SPY and QQQ:
+- 1 day (today vs yesterday close)
+- 1 week
+- 1 month
+- 3 months
+- 6 months
+- Year-to-date (YTD, from Jan 1 to today)
+
+Also find intermediate data points where possible so I can draw a multi-point line chart:
+- For 1W: Mon, Tue, Wed, Thu, Fri, Today (cumulative % from start of week)
+- For 1M: 4 weeks ago, 3 weeks ago, 2 weeks ago, 1 week ago, Today (cumulative % from 1M ago)
+- For 3M, 6M, YTD: provide monthly intermediate points as cumulative % from period start
+
+Return ONLY valid JSON, no markdown, no backticks:
+{
+  "fetchedAt": "${today}",
+  "spy": { "current": 0000.00, "currency": "USD" },
+  "qqq": { "current": 0000.00, "currency": "USD" },
+  "periods": {
+    "1D":  { "spy": 0.00, "qqq": 0.00, "spyPoints": [0, 0.00], "qqqPoints": [0, 0.00] },
+    "1W":  { "spy": 0.00, "qqq": 0.00, "spyPoints": [0, 0.00, 0.00, 0.00, 0.00, 0.00], "qqqPoints": [0, 0.00, 0.00, 0.00, 0.00, 0.00] },
+    "1M":  { "spy": 0.00, "qqq": 0.00, "spyPoints": [0, 0.00, 0.00, 0.00, 0.00], "qqqPoints": [0, 0.00, 0.00, 0.00, 0.00] },
+    "3M":  { "spy": 0.00, "qqq": 0.00, "spyPoints": [0, 0.00, 0.00, 0.00, 0.00], "qqqPoints": [0, 0.00, 0.00, 0.00, 0.00] },
+    "6M":  { "spy": 0.00, "qqq": 0.00, "spyPoints": [0, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00], "qqqPoints": [0, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00] },
+    "YTD": { "spy": 0.00, "qqq": 0.00, "spyPoints": [0, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00], "qqqPoints": [0, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00] }
+  }
+}
+
+All percentage values are numbers (e.g. 2.45 means +2.45%, -1.3 means -1.3%). spyPoints and qqqPoints always start at 0 (period start baseline). Return ONLY the JSON object starting with {`;
+
+  try {
+    const apiKey = getApiKey();
+    if (!apiKey) { showApiKeyOverlay(); btn.disabled = false; txt.textContent = 'Fetch SPY & QQQ data'; return; }
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1200,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const start = text.indexOf('{'), end = text.lastIndexOf('}') + 1;
+    const parsed = JSON.parse(text.slice(start, end));
+    benchMarketData = parsed.periods;
+
+    const stamp = document.getElementById('bench-stamp');
+    stamp.style.display = 'block';
+    stamp.textContent = `SPY $${parsed.spy?.current?.toFixed(2) || '—'} · QQQ $${parsed.qqq?.current?.toFixed(2) || '—'} · Updated ${today}`;
+
+    localStorage.setItem('bench-market', JSON.stringify({ data: benchMarketData, spy: parsed.spy, qqq: parsed.qqq, date: today }));
+    renderBenchChart();
+  } catch(e) {
+    document.getElementById('bench-stamp').style.display = 'block';
+    document.getElementById('bench-stamp').textContent = 'Fetch failed. Check connection and try again.';
+  }
+
+  btn.disabled = false;
+  txt.textContent = 'Refresh SPY & QQQ data';
+}
+
+function saveBenchInputs() {
+  const inputs = {};
+  PERIODS.forEach(p => { inputs[p] = document.getElementById('b-'+p)?.value || ''; });
+  inputs.acct = document.getElementById('bench-acct-input')?.value || '';
+  localStorage.setItem('bench-inputs', JSON.stringify(inputs));
+}
+
+function loadBenchInputs() {
+  const saved = JSON.parse(localStorage.getItem('bench-inputs') || 'null');
+  if (!saved) return;
+  PERIODS.forEach(p => { const el = document.getElementById('b-'+p); if (el && saved[p]) el.value = saved[p]; });
+  const acct = document.getElementById('bench-acct-input');
+  if (acct && saved.acct) { acct.value = saved.acct; updateAcctDisplay(); }
+}
+
+function loadCachedBench() {
+  const cached = JSON.parse(localStorage.getItem('bench-market') || 'null');
+  if (!cached) return;
+  benchMarketData = cached.data;
+  const stamp = document.getElementById('bench-stamp');
+  stamp.style.display = 'block';
+  stamp.textContent = `SPY $${cached.spy?.current?.toFixed(2) || '—'} · QQQ $${cached.qqq?.current?.toFixed(2) || '—'} · Updated ${cached.date}`;
+  document.getElementById('bench-fetch-text').textContent = 'Refresh SPY & QQQ data';
+  renderBenchChart();
+}
+
+PERIODS.forEach(p => {
+  const el = document.getElementById('b-'+p);
+  if (el) el.addEventListener('change', saveBenchInputs);
+});
+
+/* ── API KEY ── */
+function getApiKey() {
+  return localStorage.getItem('anthropic-api-key') || '';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('apikey-input').value.trim();
+  if (!key.startsWith('sk-')) {
+    document.getElementById('apikey-input').style.borderColor = '#f08080';
+    return;
+  }
+  localStorage.setItem('anthropic-api-key', key);
+  document.getElementById('apikey-overlay').style.display = 'none';
+  updateKeyStatusBtn();
+}
+
+function showApiKeyOverlay() {
+  const existing = getApiKey();
+  if (existing) document.getElementById('apikey-input').value = existing;
+  document.getElementById('apikey-overlay').style.display = 'flex';
+}
+
+function updateKeyStatusBtn() {
+  const btn = document.getElementById('key-status-btn');
+  if (getApiKey()) {
+    btn.textContent = 'API key ✓';
+    btn.style.borderColor = 'rgba(200,245,100,0.4)';
+    btn.style.color = 'var(--accent)';
+  } else {
+    btn.textContent = 'API key';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--muted)';
+  }
+}
+
+loadCachedIdeas();
+loadCachedRoth();
+loadBenchInputs();
+loadCachedBench();
+updateKeyStatusBtn();
+</script>
+
+</body>
+</html>
